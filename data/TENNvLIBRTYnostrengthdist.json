@@ -1,0 +1,17 @@
+{
+    "away_key": "TENN",
+    "home_key": "LIBRTY",
+    "season": "2021",
+    "home_win_chance_max": 0.75,
+    "max_margin_top": 52,
+    "max_margin_bottom": -18,
+    "home_win_chance_medium": 0.8125,
+    "medium_margin_top": 29,
+    "medium_margin_bottom": -7,
+    "home_win_chance_mild": 1.0,
+    "mild_margin_top": 19,
+    "mild_margin_bottom": 1,
+    "home_win_chance_median": 1.0,
+    "median_margin_top": 12,
+    "median_margin_bottom": 6
+}
