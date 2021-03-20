@@ -1057,7 +1057,7 @@ notebook = ">=4.4.1"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "3e0e1c957b6d3802010ac50ae1aa482d2797076589d1e2281a102e566319c9d2"
+content-hash = "34cc3da719874b80e14f5aa92e8e056bf67c3e2fa268ca95d48971a327fe557f"
 
 [metadata.files]
 altair = [

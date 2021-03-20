@@ -2,11 +2,110 @@ from pathlib import Path
 import json
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.io as pio
+import requests
 import streamlit as st
 
 
+# load default plotly theme for customizing
+lit_plotly_template = pio.templates["plotly"]
+print("hey")
+
+
 @st.cache
-def read_dataframes():
+def performance_by_bracket(flavor: str = "All"):
+    # fetch results data from API
+    r = requests.get(
+        "https://api.tarpey.dev/autobracket/performance/bracket"
+    )
+
+    # convert JSON
+    df = pd.DataFrame(r.json())
+
+    # sample size
+    n = len(df)
+
+    if flavor == "All":
+        n_flavor = f"All {n}"
+    else:
+        n_flavor = f"{n} {flavor}"
+
+    # make a hist from the dist
+    correct_hist = go.Figure()
+    correct_hist.add_trace(
+        go.Histogram(
+            x=df.games_correct,
+            name="games_correct",
+            xbins=dict(size=1),
+        )
+    )
+
+    # layout
+    correct_hist.update_layout(
+        title=f"{n_flavor} brackets (through 27 of 67 games)",
+    )
+
+    # styling
+    correct_hist.update_traces(
+        marker_color="#606890",
+        marker_line_color="#000e2f",
+        marker_line_width=2,
+    )
+    return correct_hist
+
+
+@st.cache
+def performance_by_game(flavor: str = "All"):
+    # fetch results data from API
+    r = requests.get(
+        "https://api.tarpey.dev/autobracket/performance/game"
+    )
+
+    # convert JSON
+    df = pd.DataFrame.from_dict(r.json(), columns=["percent_correct"], orient="index")
+    df = df.loc[df.percent_correct > 0].copy()
+    df.sort_values(by=["percent_correct"], ascending=True, inplace=True)
+
+    # sample size
+    n = len(df)
+
+    if flavor == "All":
+        n_flavor = f"All {n}"
+    else:
+        n_flavor = f"{n} {flavor}"
+
+    # make a hist from the dist
+    matchup_bars = go.Figure()
+    matchup_bars.add_trace(
+        go.Bar(
+            x=df.percent_correct,
+            y=df.index,
+            name="percent_correct",
+            orientation='h',
+        )
+    )
+
+    # layout
+    matchup_bars.update_layout(
+        layout=lit_plotly_template,
+        height=900,
+    )
+
+    # styling
+    matchup_bars.update_traces(
+        marker_color="#606890",
+        marker_line_color="#000e2f",
+        marker_line_width=2,
+    )
+
+    # subheader
+    subheader = f"{flavor} flavored brackets"
+
+    return matchup_bars, subheader
+
+
+@st.cache
+def factor_dataframes():
     dist_files = [
         "TENNvLIBRTYnostrengthdist.json",
         "TENNvLIBRTYwithstrengthdist.json",
@@ -51,7 +150,7 @@ def read_dataframes():
 
 
 @st.cache
-def histograms(away_df_before, away_df_after, home_df_before, home_df_after):
+def factor_histograms(away_df_before, away_df_after, home_df_before, home_df_after):
     tenn_hist = go.Figure()
     tenn_hist.add_trace(
         go.Histogram(
@@ -96,8 +195,11 @@ def histograms(away_df_before, away_df_after, home_df_before, home_df_after):
     return tenn_hist, lib_hist
 
 
-no_strength_dist, away_df_before, away_df_after, home_df_before, home_df_after = read_dataframes()
-tenn_hist, lib_hist = histograms(
+# all data work happens here
+correct_hist = performance_by_bracket()
+matchup_bars, bars_subheader = performance_by_game()
+no_strength_dist, away_df_before, away_df_after, home_df_before, home_df_after = factor_dataframes()
+tenn_hist, lib_hist = factor_histograms(
     away_df_before, away_df_after, home_df_before, home_df_after
 )
 
@@ -108,13 +210,28 @@ st.title("autobracket analysis")
 link = "[Back to tarpey.dev](https://tarpey.dev)"
 st.markdown(link)
 
+
+st.sidebar.selectbox("Flavor", ["All", "Vanilla", "Mild", "Medium", "MAX"])
+st.header("Model performance by # of games correct")
+col1, col2 = st.beta_columns([1,7])
+with col1:
+    st.radio("Flavor", ["All", "Vanilla", "Mild", "Medium", "MAX"])
+
+with col2:
+    st.plotly_chart(correct_hist, use_container_width=True)
+
+
+st.header("Percentage of brackets with correct winner")
+st.subheader(bars_subheader)
+st.plotly_chart(matchup_bars, use_container_width=True)
+
 st.header("Simulation distribution before/after adding relative strength")
 no_strength_dist
 
 st.header("Tennessee simulation points, before and after (n=100)")
 # display chart
-tenn_hist
+st.plotly_chart(tenn_hist, use_container_width=True)
 
 st.header("Liberty simulation points, before and after (n=100)")
 # display chart
-lib_hist
+st.plotly_chart(lib_hist, use_container_width=True)
