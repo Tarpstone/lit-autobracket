@@ -8,8 +8,23 @@ import streamlit as st
 
 
 # load default plotly theme for customizing
-lit_plotly_template = pio.templates["plotly"]
-print("hey")
+lit_plotly_layout = go.Layout(
+    margin=go.layout.Margin(
+        l=0, #left margin
+        r=0, #right margin
+        b=0, #bottom margin
+        t=0, #top margin
+    )
+)
+
+
+FLAVOR_DICT = {
+    "All": False,
+    "Vanilla": "none",
+    "Mild": "mild",
+    "Medium": "medium",
+    "MAX SPICE": "max",
+}
 
 
 @st.cache
@@ -22,6 +37,10 @@ def performance_by_bracket(flavor: str = "All"):
     # convert JSON
     df = pd.DataFrame(r.json())
 
+    # filter by requested flavor
+    if FLAVOR_DICT[flavor]:
+        df = df.loc[df.flavor == FLAVOR_DICT[flavor]].copy()
+
     # sample size
     n = len(df)
 
@@ -31,7 +50,7 @@ def performance_by_bracket(flavor: str = "All"):
         n_flavor = f"{n} {flavor}"
 
     # make a hist from the dist
-    correct_hist = go.Figure()
+    correct_hist = go.Figure(layout=lit_plotly_layout)
     correct_hist.add_trace(
         go.Histogram(
             x=df.games_correct,
@@ -41,9 +60,7 @@ def performance_by_bracket(flavor: str = "All"):
     )
 
     # layout
-    correct_hist.update_layout(
-        title=f"{n_flavor} brackets (through 27 of 67 games)",
-    )
+    subheader = f"{n_flavor} brackets (through 36 of 67 games)"
 
     # styling
     correct_hist.update_traces(
@@ -51,7 +68,7 @@ def performance_by_bracket(flavor: str = "All"):
         marker_line_color="#000e2f",
         marker_line_width=2,
     )
-    return correct_hist
+    return correct_hist, subheader
 
 
 @st.cache
@@ -62,9 +79,9 @@ def performance_by_game(flavor: str = "All"):
     )
 
     # convert JSON
-    df = pd.DataFrame.from_dict(r.json(), columns=["percent_correct"], orient="index")
-    df = df.loc[df.percent_correct > 0].copy()
-    df.sort_values(by=["percent_correct"], ascending=True, inplace=True)
+    df = pd.DataFrame(r.json())
+    df = df[[flavor]].copy()
+    df.sort_values(by=[flavor], ascending=True, inplace=True)
 
     # sample size
     n = len(df)
@@ -75,10 +92,10 @@ def performance_by_game(flavor: str = "All"):
         n_flavor = f"{n} {flavor}"
 
     # make a hist from the dist
-    matchup_bars = go.Figure()
+    matchup_bars = go.Figure(layout=lit_plotly_layout)
     matchup_bars.add_trace(
         go.Bar(
-            x=df.percent_correct,
+            x=getattr(df, flavor),
             y=df.index,
             name="percent_correct",
             orientation='h',
@@ -87,7 +104,6 @@ def performance_by_game(flavor: str = "All"):
 
     # layout
     matchup_bars.update_layout(
-        layout=lit_plotly_template,
         height=900,
     )
 
@@ -149,7 +165,6 @@ def factor_dataframes():
     return no_strength_dist, away_df_before, away_df_after, home_df_before, home_df_after
 
 
-@st.cache
 def factor_histograms(away_df_before, away_df_after, home_df_before, home_df_after):
     tenn_hist = go.Figure()
     tenn_hist.add_trace(
@@ -195,9 +210,11 @@ def factor_histograms(away_df_before, away_df_after, home_df_before, home_df_aft
     return tenn_hist, lib_hist
 
 
+flavor_filter = st.sidebar.radio("Flavor", ["All", "Vanilla", "Mild", "Medium", "MAX SPICE"])
+
 # all data work happens here
-correct_hist = performance_by_bracket()
-matchup_bars, bars_subheader = performance_by_game()
+correct_hist, hist_subheader = performance_by_bracket(flavor=flavor_filter)
+matchup_bars, bars_subheader = performance_by_game(flavor=flavor_filter)
 no_strength_dist, away_df_before, away_df_after, home_df_before, home_df_after = factor_dataframes()
 tenn_hist, lib_hist = factor_histograms(
     away_df_before, away_df_after, home_df_before, home_df_after
@@ -210,12 +227,11 @@ st.title("autobracket analysis")
 link = "[Back to tarpey.dev](https://tarpey.dev)"
 st.markdown(link)
 
-
-st.sidebar.selectbox("Flavor", ["All", "Vanilla", "Mild", "Medium", "MAX"])
 st.header("Model performance by # of games correct")
+st.subheader(hist_subheader)
 col1, col2 = st.beta_columns([1,7])
 with col1:
-    st.radio("Flavor", ["All", "Vanilla", "Mild", "Medium", "MAX"])
+    st.write("column test =]")
 
 with col2:
     st.plotly_chart(correct_hist, use_container_width=True)
