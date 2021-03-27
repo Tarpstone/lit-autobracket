@@ -60,7 +60,7 @@ def performance_by_bracket(flavor: str = "All"):
     )
 
     # layout
-    subheader = f"{n_flavor} brackets (through 36 of 67 games)"
+    subheader = f"{n_flavor} brackets (through 52 of 67 games)"
 
     # styling
     correct_hist.update_traces(
