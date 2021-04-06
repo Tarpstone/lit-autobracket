@@ -60,7 +60,7 @@ def performance_by_bracket(flavor: str = "All"):
     )
 
     # layout
-    subheader = f"{n_flavor} brackets (through 66 of 67 games)"
+    subheader = f"{n_flavor} brackets (through 67 of 67 games)"
 
     # styling
     correct_hist.update_traces(
@@ -104,7 +104,7 @@ def performance_by_game(flavor: str = "All"):
 
     # layout
     matchup_bars.update_layout(
-        height=900,
+        height=1200,
     )
 
     # styling
